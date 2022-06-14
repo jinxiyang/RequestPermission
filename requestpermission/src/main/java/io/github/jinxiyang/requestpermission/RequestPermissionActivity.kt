@@ -46,7 +46,7 @@ open class RequestPermissionActivity : AppCompatActivity() {
 
     private fun requestNextPermission() {
         if (mPermissionGroupList.isEmpty()) {
-            onRequestDangerousPermissions()
+            onRequestedDangerousPermissions()
         } else {
             mRequestingPermissionGroup = mPermissionGroupList.removeAt(0)
             mRequestCode++
@@ -95,7 +95,7 @@ open class RequestPermissionActivity : AppCompatActivity() {
         requestNextPermission()
     }
 
-    open fun onRequestDangerousPermissions() {
+    open fun onRequestedDangerousPermissions() {
         val intent = Intent()
         intent.putStringArrayListExtra(RESULT_KEY_PERMISSION_LIST, mResultPermissionList)
         intent.putIntegerArrayListExtra(RESULT_KEY_GRANTED_LIST, mResultGrantedList)

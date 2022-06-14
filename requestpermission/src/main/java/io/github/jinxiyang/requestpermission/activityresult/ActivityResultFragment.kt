@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
+import androidx.core.app.ActivityOptionsCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.MutableLiveData
 
@@ -15,6 +16,11 @@ class ActivityResultFragment : Fragment() {
     private val intentLiveData = MutableLiveData<Intent>()
 
     private var onActivityResultListener: OnActivityResultListener? = null
+
+    private val activityOptionsCompat: ActivityOptionsCompat by lazy {
+        //页面转场无动画
+        ActivityOptionsCompat.makeCustomAnimation(requireContext(), 0, 0)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,7 +37,7 @@ class ActivityResultFragment : Fragment() {
         }
 
         intentLiveData.observe(this) {
-            launcher.launch(it)
+            launcher.launch(it, activityOptionsCompat)
         }
     }
 

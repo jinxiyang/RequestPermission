@@ -48,11 +48,12 @@ public class SimpleAdapter extends RecyclerView.Adapter<SimpleAdapter.SimpleVH> 
     @Override
     public SimpleVH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         Button button = new Button(parent.getContext());
-        ViewGroup.MarginLayoutParams params = new ViewGroup.MarginLayoutParams(itemWidth, itemHeight);
+        ViewGroup.MarginLayoutParams params = new ViewGroup.MarginLayoutParams(itemWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
         button.setLayoutParams(params);
         button.setTextSize(14f);
         button.setGravity(Gravity.CENTER);
         button.setTextColor(Color.BLACK);
+        button.setMinHeight(itemHeight);
         return new SimpleVH(button);
     }
 

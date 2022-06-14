@@ -18,12 +18,12 @@ class PermissionRequester {
 
     private var mRequestPermissionActivityClass: Class<*> = RequestPermissionActivity::class.java
 
-    fun setActivity(activity: AppCompatActivity): PermissionRequester {
+    fun setUiRequester(activity: AppCompatActivity): PermissionRequester {
         mUiRequester = ActivityUiRequester(activity)
         return this
     }
 
-    fun setFragment(fragment: Fragment): PermissionRequester {
+    fun setUiRequester(fragment: Fragment): PermissionRequester {
         //避免没有绑定到activity
         fragment.requireActivity()
         mUiRequester = FragmentUiRequester(fragment)
@@ -61,7 +61,7 @@ class PermissionRequester {
         doRequest(onRequestPermissionResultListener)
     }
 
-    fun requestWithHandledResult(onRequestPermissionHandledResultListener: OnRequestPermissionHandledResultListener){
+    fun request(onRequestPermissionHandledResultListener: OnRequestPermissionHandledResultListener){
         doRequest(object : OnRequestPermissionResultListener {
             override fun onRequestPermissionResult(permissionList: List<String>, grantResults: List<Int>) {
                 //是否已经全部授权

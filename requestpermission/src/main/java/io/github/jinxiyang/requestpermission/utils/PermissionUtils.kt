@@ -11,11 +11,29 @@ object PermissionUtils {
     @JvmField
     val LOCATION_PERMISSIONS = arrayOf(permission.ACCESS_FINE_LOCATION, permission.ACCESS_COARSE_LOCATION)
 
+    @JvmField
+    val STORAGE_PERMISSIONS = arrayOf(permission.READ_EXTERNAL_STORAGE, permission.WRITE_EXTERNAL_STORAGE)
+
+    @JvmField
+    val WIFI_PERMISSIONS = arrayOf(permission.ACCESS_WIFI_STATE, permission.CHANGE_WIFI_STATE, permission.CHANGE_WIFI_MULTICAST_STATE)
+
+    @JvmField
+    val PHONE_STATE_PERMISSIONS = arrayOf(permission.READ_PHONE_STATE)
+
+    @JvmField
+    val READ_CONTACTS_PERMISSIONS = arrayOf(permission.READ_CONTACTS)
+
+    @JvmField
+    val CAMERA_PERMISSIONS = arrayOf(permission.CAMERA)
+
+    @JvmField
+    val RECORD_AUDIO_PERMISSIONS = arrayOf(permission.RECORD_AUDIO)
+
     /**
      * 判断是否有权限
      */
     @JvmStatic
-    fun hasPermissions(context: Context, permission: String): Boolean {
+    fun hasPermission(context: Context, permission: String): Boolean {
         val permissions = mutableListOf<String>()
         permissions.add(permission)
         return hasPermissions(context, permissions)
