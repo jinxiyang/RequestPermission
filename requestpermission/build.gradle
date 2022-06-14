@@ -3,6 +3,9 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+//引入发布maven脚本
+//apply from: '../uploadMavenCentral.gradle'
+
 android {
     compileSdk 31
 

@@ -1,0 +1,105 @@
+
+
+//       +---------------------------------------------------------------------------------------------------
+//       |    发布module到Maven服务器, 在Android Studio的Terminal下执行，注意命令中的module名                      |
+//       |                                                                                                  |
+//       |                                                                                                  |
+//       |    发布到中央仓库mavenCentral :      ./gradlew :requestpermission:publish                            |
+//       |                                                                                                  |
+//       |    发布到本地仓库mavenLocal   :      ./gradlew :requestpermission:publishToMavenLocal                |
+//       +---------------------------------------------------------------------------------------------------
+
+
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
+
+//发布aar的版本号，有-SNAPSHOT代表发布snapshot，没有则发release
+//def libVersion='0.0.1'
+def libVersion='0.0.1'
+
+task androidSourcesJar(type: Jar) {
+    archiveClassifier.set("sources")
+    // 源码路径，包含Java、kotlin代码
+    from android.sourceSets.main.java.getSrcDirs()
+    exclude "**/R.class"
+    exclude "**/BuildConfig.class"
+}
+
+publishing {
+    publications {
+        aar(MavenPublication) {
+            // group id，发布后引用的依赖的 group id
+            groupId 'io.github.jinxiyang'
+            // 发布后引用的依赖的 artifact id
+            artifactId 'requestpermission'
+            // 发布的版本
+            version libVersion
+            // 发布的aar，依赖bundleReleaseAar task，module要先构建出aar
+            afterEvaluate { artifact(tasks.getByName("bundleReleaseAar")) }
+            artifact androidSourcesJar
+            pom {
+                // 构件名称，可以自定义
+                name = 'RequestPermission'
+                // 构件描述
+                description = 'Android申请系统权限封装库'
+                // 构件主页
+                url = 'https://github.com/jinxiyang/RequestPermission'
+                // 许可证名称和地址
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                // 开发者信息
+                developers {
+                    developer {
+                        name = 'yangjinxi'
+                        email = '1137501600@qq.com'
+                    }
+                }
+                // 版本控制仓库地址
+                scm {
+                    url = 'https://github.com/jinxiyang/RequestPermission'
+                    connection = 'scm:git:github.com/jinxiyang/RequestPermission.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/jinxiyang/RequestPermission.git'
+                }
+            }
+
+            // pom文件中声明依赖，从而传递到使用方
+            pom.withXml {
+                def dependenciesNode = asNode().appendNode('dependencies')
+                configurations.implementation.allDependencies.each {
+                    // 避免出现空节点或 artifactId=unspecified 的节点
+                    if (it.group != null && (it.name != null && "unspecified" != it.name) && it.version != null) {
+                        println "dependency=${it.toString()}"
+                        def dependencyNode = dependenciesNode.appendNode('dependency')
+                        dependencyNode.appendNode('groupId', it.group)
+                        dependencyNode.appendNode('artifactId', it.name)
+                        dependencyNode.appendNode('version', it.version)
+                        dependencyNode.appendNode('scope', 'implementation')
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            // 发布的仓库地址，这里根据发布的版本区分了release和snapshot版本两种情况
+            def releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+            def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+            url = libVersion.endsWith('-SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+
+            credentials {
+                // 在 issues.sonatype.org 注册的账号和密码，在gradle.properties配置了
+                username sonatypeUsername
+                password sonatypePassword
+            }
+        }
+    }
+}
+
+//签名，会使用gradle.properties配置的秘钥
+signing {
+    sign publishing.publications
+}
