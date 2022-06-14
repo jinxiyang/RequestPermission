@@ -6,12 +6,11 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelStoreOwner
+import io.github.jinxiyang.requestpermission.activityresult.ActivityResultHelper
+import io.github.jinxiyang.requestpermission.activityresult.OnActivityResultListener
 import io.github.jinxiyang.requestpermission.utils.PermissionUtils
 
-open class PermissionRequester {
+class PermissionRequester {
 
     private lateinit var mUiRequester: UiRequester
 
@@ -34,7 +33,7 @@ open class PermissionRequester {
     /**
      * 设置自定义请求权限的activity
      */
-    fun setCustomActivity(clazz: Class<*>): PermissionRequester {
+    fun setCustomRequestPermissionActivity(clazz: Class<*>): PermissionRequester {
         mRequestPermissionActivityClass = clazz
         return this
     }
@@ -82,14 +81,6 @@ open class PermissionRequester {
             throw RuntimeException("activity or fragment cannot be null")
         }
 
-        val viewModel = ViewModelProvider(mUiRequester.getViewModelStoreOwner()).get(RequestResultViewModel::class.java)
-        val liveDataTag = getLiveDataTag()
-        val liveData = viewModel.createNewRequestResultLiveData(liveDataTag)
-        liveData.observe(mUiRequester.getLifecycleOwner()) { result ->
-            listener.onRequestPermissionResult(result.permissionList, result.grantedList)
-            viewModel.removeLiveDataByTag(liveDataTag)
-        }
-
         val activity = mUiRequester.getActivity()
 
         //查询是否有权限，如果有权限直接回调listener
@@ -100,62 +91,52 @@ open class PermissionRequester {
         if (PermissionUtils.hasPermissions(activity, permissionList)) {
             val grantedList = IntArray(permissionList.size) {
                 PackageManager.PERMISSION_GRANTED
-            }.toMutableList()
-            liveData.postValue(RequestResult(permissionList, grantedList))
+            }.toList()
+            listener.onRequestPermissionResult(permissionList, grantedList)
             return
         }
 
         //无权限时，开启权限统一请求页面
         val intent = Intent(activity, mRequestPermissionActivityClass)
         intent.putParcelableArrayListExtra(PARAM_KEY_PERMISSION_GROUP_LIST, mPermissionGroupList)
-        intent.putExtra(PARAM_KEY_LIVE_DATA_TAG, liveDataTag)
-        activity.startActivity(intent)
-        //无动画打开权限页面
-        activity.overridePendingTransition(0, 0)
-    }
 
-    private fun getLiveDataTag(): String {
-        return mUiRequester.clazz.name + "_"+ mUiRequester.hashCode()
+        ActivityResultHelper.startActivityForResult(activity.supportFragmentManager, intent, object : OnActivityResultListener {
+
+            override fun onActivityResult(resultCode: Int, intent: Intent?) {
+                val resultPermissionList = intent?.getStringArrayListExtra(RequestPermissionActivity.RESULT_KEY_PERMISSION_LIST)
+                val resultGrantedList = intent?.getIntegerArrayListExtra(RequestPermissionActivity.RESULT_KEY_GRANTED_LIST)
+                if (resultPermissionList != null && resultGrantedList != null) {
+                    listener.onRequestPermissionResult(resultPermissionList, resultGrantedList)
+                } else {
+                    val grantedList = IntArray(permissionList.size) {
+                        PackageManager.PERMISSION_DENIED
+                    }.toList()
+                    listener.onRequestPermissionResult(permissionList, grantedList)
+                }
+            }
+        })
     }
 
     interface OnRequestPermissionResultListener{
         fun onRequestPermissionResult(permissionList: List<String>, grantResults: List<Int>)
     }
 
-    interface OnRequestPermissionHandledResultListener{
+    interface OnRequestPermissionHandledResultListener {
         fun onRequestPermissionHandledResult(isGranted: Boolean)
     }
 
-    abstract class UiRequester(val clazz: Class<*>){
-        abstract fun getViewModelStoreOwner(): ViewModelStoreOwner
-        abstract fun getLifecycleOwner(): LifecycleOwner
+    private abstract class UiRequester{
         abstract fun getActivity(): FragmentActivity
     }
 
-    class ActivityUiRequester(val act: AppCompatActivity): UiRequester(act.javaClass) {
-
-        override fun getViewModelStoreOwner(): ViewModelStoreOwner {
-            return act
-        }
-
-        override fun getLifecycleOwner(): LifecycleOwner {
-            return act
-        }
+    private class ActivityUiRequester(val act: AppCompatActivity): UiRequester() {
 
         override fun getActivity(): FragmentActivity {
             return act
         }
     }
 
-    class FragmentUiRequester(val fragment: Fragment): UiRequester(fragment.javaClass) {
-
-        override fun getViewModelStoreOwner(): ViewModelStoreOwner {
-            return fragment
-        }
-
-        override fun getLifecycleOwner(): LifecycleOwner {
-            return fragment
-        }
+    private class FragmentUiRequester(val fragment: Fragment): UiRequester() {
 
         override fun getActivity(): FragmentActivity {
             return fragment.requireActivity()
@@ -164,7 +145,6 @@ open class PermissionRequester {
 
     companion object {
         const val PARAM_KEY_PERMISSION_GROUP_LIST = "permissionGroupList"
-        const val PARAM_KEY_LIVE_DATA_TAG = "liveDataTag"
     }
 
 }

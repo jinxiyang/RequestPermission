@@ -1,17 +1,19 @@
 package io.github.jinxiyang.requestpermission
 
+import android.content.Intent
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.lifecycle.ViewModelProvider
 import io.github.jinxiyang.requestpermission.utils.PermissionUtils
 import io.github.jinxiyang.requestpermission.utils.StatusBarUtils
 
 open class RequestPermissionActivity : AppCompatActivity() {
 
     private val mPermissionGroupList: MutableList<PermissionGroup> = mutableListOf()
-    private val mRequestResult: RequestResult = RequestResult()
+
+    private val mResultPermissionList: ArrayList<String> = ArrayList()
+    private val mResultGrantedList: ArrayList<Int> = ArrayList()
 
     private lateinit var mRequestingPermissionGroup: PermissionGroup
 
@@ -87,17 +89,23 @@ open class RequestPermissionActivity : AppCompatActivity() {
             } else {
                 PackageManager.PERMISSION_GRANTED
             }
-            mRequestResult.permissionList.add(it)
-            mRequestResult.grantedList.add(granted)
+            mResultPermissionList.add(it)
+            mResultGrantedList.add(granted)
         }
         requestNextPermission()
     }
 
     open fun onRequestDangerousPermissions() {
-        val viewModel = ViewModelProvider(this).get(RequestResultViewModel::class.java)
-        val liveDataTag = intent.getStringExtra(PermissionRequester.PARAM_KEY_LIVE_DATA_TAG) ?: ""
-        viewModel.getRequestResultLiveData(liveDataTag)?.postValue(mRequestResult)
+        val intent = Intent()
+        intent.putStringArrayListExtra(RESULT_KEY_PERMISSION_LIST, mResultPermissionList)
+        intent.putIntegerArrayListExtra(RESULT_KEY_GRANTED_LIST, mResultGrantedList)
+        setResult(RESULT_OK, intent)
         finish()
         overridePendingTransition(0, 0)
+    }
+
+    companion object {
+        const val RESULT_KEY_PERMISSION_LIST = "permissionList"
+        const val RESULT_KEY_GRANTED_LIST = "grantedList"
     }
 }
