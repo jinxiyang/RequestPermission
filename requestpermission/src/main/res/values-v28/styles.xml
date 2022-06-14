@@ -1,0 +1,6 @@
+<resources>
+
+    <!--  Android 9.0及以上  透明activity主题  -->
+    <style name="RequestTransparentTheme.OrientationTransparentTheme" parent="RequestTransparentTheme.TransparentTheme"/>
+
+</resources>

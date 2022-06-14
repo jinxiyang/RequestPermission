@@ -1,0 +1,25 @@
+<resources>
+
+<!--  如果在AndroidManifest.xml设置了旋转方向：android:screenOrientation="portrait"
+
+在android 8.0/8.1 (即v26/27)，则会报这个错误：
+java.lang.RuntimeException: Unable to start activity ComponentInfo{io.github.jinxiyang.requestpermissiondemo/io.github.jinxiyang.requestpermission.RequestPermissionActivity}:
+java.lang.IllegalStateException: Only fullscreen opaque activities can request orientation
+
+在android 8.0/8.1 (即v26/27)，只有不透明的全屏activity可以自主设置界面方向
+
+
+
+解决方法：
+第一种：在AndroidManifest.xml不为activity设置旋转方向这个属性：android:screenOrientation
+第二种：主题设置为不透明背景，如下：RequestTransparentTheme.OrientationTransparentTheme
+-->
+
+    <style name="RequestTransparentTheme.OrientationTransparentTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:background">@android:color/white</item>
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowDisablePreview">true</item>
+    </style>
+
+</resources>
