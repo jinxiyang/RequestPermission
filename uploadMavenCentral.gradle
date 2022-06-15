@@ -15,7 +15,7 @@ apply plugin: 'signing'
 
 //发布aar的版本号，有-SNAPSHOT代表发布snapshot，没有则发release
 //def libVersion='0.0.1'
-def libVersion='0.0.1'
+def libVersion='0.0.2'
 
 task androidSourcesJar(type: Jar) {
     archiveClassifier.set("sources")
