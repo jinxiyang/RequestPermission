@@ -5,10 +5,10 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import io.github.jinxiyang.requestpermission.PermissionGroup
-import io.github.jinxiyang.requestpermission.RequestPermissionActivity
+import io.github.jinxiyang.requestpermission.GlobalRequestPermissionActivity
 import io.github.jinxiyang.requestpermissiondemo.utils.StatusBarUtils
 
-class UCRequestPermissionActivity : RequestPermissionActivity() {
+class UCRequestPermissionActivity : GlobalRequestPermissionActivity() {
 
     private lateinit var llContent: LinearLayout
     private lateinit var clContent: ConstraintLayout
@@ -28,9 +28,7 @@ class UCRequestPermissionActivity : RequestPermissionActivity() {
         showPermission()
     }
 
-    override fun onRequestingPermission(permissionGroup: PermissionGroup, requestCode: Int) {
-        super.onRequestingPermission(permissionGroup, requestCode)
-
+    override fun onRequestingPermission(permissionGroup: PermissionGroup) {
         val extra = permissionGroup.extra
         val permissionTitle = extra?.getString(KEY_PERMISSION_TITLE)
         val permissionDesc = extra?.getString(KEY_PERMISSION_DESC)

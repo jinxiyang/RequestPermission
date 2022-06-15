@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
+import io.github.jinxiyang.requestpermission.PermissionGroup
+import io.github.jinxiyang.requestpermission.PermissionResult
 
 object PermissionUtils {
 
@@ -34,9 +36,7 @@ object PermissionUtils {
      */
     @JvmStatic
     fun hasPermission(context: Context, permission: String): Boolean {
-        val permissions = mutableListOf<String>()
-        permissions.add(permission)
-        return hasPermissions(context, permissions)
+        return checkPermissions(context, permission) == PackageManager.PERMISSION_GRANTED
     }
 
     /**
@@ -44,25 +44,51 @@ object PermissionUtils {
      */
     @JvmStatic
     fun hasPermissions(context: Context, permissions: Array<String>): Boolean {
-        return hasPermissions(context, permissions.toList())
+        permissions.forEach {
+            if (!hasPermission(context, it)) {
+                return false
+            }
+        }
+        return true
     }
 
     /**
      * 判断是否有权限
      */
     @JvmStatic
-    fun hasPermissions(context: Context, permissions: List<String>, hasNotPermissionList: MutableList<String>? = null): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            // 小于Android 6.0，直接默认允许权限
-            return true
-        }
-
-        val hasNotPermissions: MutableList<String> = hasNotPermissionList ?: mutableListOf()
+    fun hasPermissions(context: Context, permissions: List<String>): Boolean {
         permissions.forEach {
-            if (ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED) {
-                hasNotPermissions.add(it)
+            if (!hasPermission(context, it)) {
+                return false
             }
         }
-        return hasNotPermissions.isEmpty()
+        return true
+    }
+
+    /**
+     * 检查权限
+     */
+    @JvmStatic
+    fun checkPermissions(context: Context, permission: String): Int {
+        return if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            // 小于Android 6.0，直接默认允许权限
+            PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(context, permission)
+        }
+    }
+
+    /**
+     * 判断权限
+     */
+    @JvmStatic
+    fun checkPermissions(context: Context, permissionGroups: List<PermissionGroup>): PermissionResult {
+        val result = PermissionResult()
+        permissionGroups.forEach {
+            it.permissionList.forEach { permission ->
+                result.addResult(permission, checkPermissions(context, permission))
+            }
+        }
+        return result
     }
 }

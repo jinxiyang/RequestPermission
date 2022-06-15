@@ -1,150 +1,152 @@
 package io.github.jinxiyang.requestpermission
 
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import io.github.jinxiyang.requestpermission.activityresult.ActivityResultHelper
-import io.github.jinxiyang.requestpermission.activityresult.OnActivityResultListener
+import io.github.jinxiyang.requestpermission.activityresultcontracts.ActivityResultContractsHelper
+import io.github.jinxiyang.requestpermission.activityresultcontracts.OnRequestMultiPermissionListener
+import io.github.jinxiyang.requestpermission.activityresultcontracts.OnStartActivityForResultListener
 import io.github.jinxiyang.requestpermission.utils.PermissionUtils
 
-class PermissionRequester {
+class PermissionRequester(val activity: FragmentActivity) {
 
-    private lateinit var mUiRequester: UiRequester
+    private val mPermissionGroupList: ArrayList<PermissionGroup> = ArrayList()
 
-    private var mPermissionGroupList: ArrayList<PermissionGroup> = ArrayList()
-
-    private var mRequestPermissionActivityClass: Class<*> = RequestPermissionActivity::class.java
-
-    fun setUiRequester(activity: AppCompatActivity): PermissionRequester {
-        mUiRequester = ActivityUiRequester(activity)
-        return this
-    }
-
-    fun setUiRequester(fragment: Fragment): PermissionRequester {
-        //避免没有绑定到activity
-        fragment.requireActivity()
-        mUiRequester = FragmentUiRequester(fragment)
-        return this
-    }
+    constructor(fragment: Fragment): this(fragment.requireActivity())
 
     /**
-     * 设置自定义请求权限的activity
+     * 添加一组需要申请
+     *
+     * @param permissionGroup 权限组，如：存储权限：{@link PermissionUtils.STORAGE_PERMISSIONS}
      */
-    fun setCustomRequestPermissionActivity(clazz: Class<*>): PermissionRequester {
-        mRequestPermissionActivityClass = clazz
-        return this
-    }
-
     fun addPermissionGroup(permissionGroup: PermissionGroup): PermissionRequester {
         mPermissionGroupList.add(permissionGroup)
         return this
     }
 
+    /**
+     * 添加需要申请的权限组
+     *
+     * @param permissionList 一组权限列表，如：存储权限：{@link PermissionUtils.STORAGE_PERMISSIONS}
+     * @param extra 额外数据，可以再统一权限页使用，例如申请权限时页面顶部显示权限说明，示例：UCRequestPermissionActivity
+     */
     fun addPermissionGroup(permissionList: List<String>, extra: Bundle? = null): PermissionRequester {
         return addPermissionGroup(PermissionGroup(permissionList, extra))
     }
 
+
+    /**
+     * 添加需要申请的权限
+     */
     fun addPermission(permission: String): PermissionRequester {
         val permissions = mutableListOf<String>()
         permissions.add(permission)
         return addPermissionGroup(permissions)
     }
 
+    /**
+     * 添加需要申请的权限
+     */
     fun addPermissions(permissions: Array<String>): PermissionRequester {
         return addPermissionGroup(permissions.toList())
     }
 
-    fun request(onRequestPermissionResultListener: OnRequestPermissionResultListener){
-        doRequest(onRequestPermissionResultListener)
-    }
-
-    fun request(onRequestPermissionHandledResultListener: OnRequestPermissionHandledResultListener){
-        doRequest(object : OnRequestPermissionResultListener {
-            override fun onRequestPermissionResult(permissionList: List<String>, grantResults: List<Int>) {
-                //是否已经全部授权
-                var isGranted = true
-                grantResults.forEach { grant ->
-                    if (grant != PackageManager.PERMISSION_GRANTED) {
-                        isGranted = false
-                    }
-                }
-                onRequestPermissionHandledResultListener.onRequestPermissionHandledResult(isGranted)
+    /**
+     * 请求权限
+     * @param listener 权限结果回调listener
+     */
+    fun request(listener: (PermissionResult) -> Unit) {
+        request(object : OnRequestPermissionResultListener{
+            override fun onResult(result: PermissionResult) {
+                listener(result)
             }
         })
     }
 
-    private fun doRequest(listener: OnRequestPermissionResultListener){
-        if (!::mUiRequester.isInitialized) {
-            throw RuntimeException("activity or fragment cannot be null")
-        }
-
-        val activity = mUiRequester.getActivity()
-
+    /**
+     * 请求权限
+     * @param listener 权限结果回调listener
+     */
+    fun request(listener: OnRequestPermissionResultListener){
         //查询是否有权限，如果有权限直接回调listener
-        val permissionList = mutableListOf<String>()
-        mPermissionGroupList.forEach {
-            permissionList.addAll(it.permissionList)
+        val permissionResult = PermissionUtils.checkPermissions(activity, mPermissionGroupList)
+        if (permissionResult.granted()) {
+            listener.onResult(permissionResult)
+            return
         }
-        if (PermissionUtils.hasPermissions(activity, permissionList)) {
-            val grantedList = IntArray(permissionList.size) {
-                PackageManager.PERMISSION_GRANTED
-            }.toList()
-            listener.onRequestPermissionResult(permissionList, grantedList)
+
+        //没有授权的权限
+        val notGrantedArray = permissionResult.notGrantedArray()
+        val fm = activity.supportFragmentManager
+        ActivityResultContractsHelper.requestMultiplePermissions(fm, notGrantedArray, object : OnRequestMultiPermissionListener{
+            override fun onRequestMultiPermission(map: Map<String, Boolean>) {
+                permissionResult.setResult(map)
+                listener.onResult(permissionResult)
+            }
+        })
+    }
+
+    /**
+     * 请求权限，使用公用的请求权限中转页面（默认：GlobalRequestPermissionActivity）
+     *
+     * @param listener 权限结果回调listener
+     */
+    fun requestGlobal(listener: (PermissionResult) -> Unit) {
+        requestGlobal(GlobalRequestPermissionActivity::class.java, listener)
+    }
+
+    /**
+     * 请求权限，使用公用的请求权限中转页面（默认：GlobalRequestPermissionActivity）
+     *
+     * @param listener 权限结果回调listener
+     */
+    fun requestGlobal(listener: OnRequestPermissionResultListener){
+        requestGlobal(GlobalRequestPermissionActivity::class.java, listener)
+    }
+
+    /**
+     * 请求权限，使用公用的请求权限中转页面
+     *
+     * @param requestPermissionActivityClass 公用的请求权限中转页面
+     * @param listener 权限结果回调listener
+     */
+    fun requestGlobal(requestPermissionActivityClass: Class<*>, listener: (PermissionResult) -> Unit){
+        val l = object : OnRequestPermissionResultListener {
+            override fun onResult(result: PermissionResult) {
+                listener(result)
+            }
+        }
+        requestGlobal(requestPermissionActivityClass, l)
+    }
+
+    /**
+     * 请求权限，使用公用的请求权限中转页面
+     *
+     * @param requestPermissionActivityClass 公用的请求权限中转页面
+     * @param listener 权限结果回调listener
+     */
+    fun requestGlobal(requestPermissionActivityClass: Class<*>, listener: OnRequestPermissionResultListener){
+        //查询是否有权限，如果有权限直接回调listener
+        val permissionResult = PermissionUtils.checkPermissions(activity, mPermissionGroupList)
+        if (permissionResult.granted()) {
+            listener.onResult(permissionResult)
             return
         }
 
         //无权限时，开启权限统一请求页面
-        val intent = Intent(activity, mRequestPermissionActivityClass)
+        val intent = Intent(activity, requestPermissionActivityClass)
         intent.putParcelableArrayListExtra(PARAM_KEY_PERMISSION_GROUP_LIST, mPermissionGroupList)
 
-        ActivityResultHelper.startActivityForResult(activity.supportFragmentManager, intent, object : OnActivityResultListener {
+        ActivityResultContractsHelper.startActivityForResult(activity.supportFragmentManager, intent, object : OnStartActivityForResultListener {
 
             override fun onActivityResult(resultCode: Int, intent: Intent?) {
-                val resultPermissionList = intent?.getStringArrayListExtra(RequestPermissionActivity.RESULT_KEY_PERMISSION_LIST)
-                val resultGrantedList = intent?.getIntegerArrayListExtra(RequestPermissionActivity.RESULT_KEY_GRANTED_LIST)
-                if (resultPermissionList != null && resultGrantedList != null) {
-                    listener.onRequestPermissionResult(resultPermissionList, resultGrantedList)
-                } else {
-                    val grantedList = IntArray(permissionList.size) {
-                        PackageManager.PERMISSION_DENIED
-                    }.toList()
-                    listener.onRequestPermissionResult(permissionList, grantedList)
-                }
+                listener.onResult(PermissionResult.readIntent(intent, permissionResult))
             }
         })
-    }
-
-    interface OnRequestPermissionResultListener{
-        fun onRequestPermissionResult(permissionList: List<String>, grantResults: List<Int>)
-    }
-
-    interface OnRequestPermissionHandledResultListener {
-        fun onRequestPermissionHandledResult(isGranted: Boolean)
-    }
-
-    private abstract class UiRequester{
-        abstract fun getActivity(): FragmentActivity
-    }
-
-    private class ActivityUiRequester(val act: AppCompatActivity): UiRequester() {
-
-        override fun getActivity(): FragmentActivity {
-            return act
-        }
-    }
-
-    private class FragmentUiRequester(val fragment: Fragment): UiRequester() {
-
-        override fun getActivity(): FragmentActivity {
-            return fragment.requireActivity()
-        }
     }
 
     companion object {
         const val PARAM_KEY_PERMISSION_GROUP_LIST = "permissionGroupList"
     }
-
 }

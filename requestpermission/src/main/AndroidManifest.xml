@@ -8,7 +8,7 @@
                 解决在android 8.0/8.1 (即v26/27)，报错：只有不透明的全屏activity可以自主设置界面方向   -->
         <!--  2、如果activity 没有设置 screenOrientation， 请使用主题 RequestTransparentTheme.TransparentTheme    -->
         <activity
-            android:name=".RequestPermissionActivity"
+            android:name=".GlobalRequestPermissionActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize"
             android:theme="@style/RequestTransparentTheme.TransparentTheme"

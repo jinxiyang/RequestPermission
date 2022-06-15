@@ -8,12 +8,16 @@ import androidx.core.app.ActivityCompat
 import io.github.jinxiyang.requestpermission.utils.PermissionUtils
 import io.github.jinxiyang.requestpermission.utils.StatusBarUtils
 
-open class RequestPermissionActivity : AppCompatActivity() {
+/**
+ * 公用的请求权限中转页面，默认背景透明，看起来不存在一样。
+ *
+ * 如果想实现自定义权限中转页面，可以继承此activity
+ */
+open class GlobalRequestPermissionActivity : AppCompatActivity() {
 
     private val mPermissionGroupList: MutableList<PermissionGroup> = mutableListOf()
 
-    private val mResultPermissionList: ArrayList<String> = ArrayList()
-    private val mResultGrantedList: ArrayList<Int> = ArrayList()
+    private val mPermissionResult: PermissionResult = PermissionResult()
 
     private lateinit var mRequestingPermissionGroup: PermissionGroup
 
@@ -44,68 +48,67 @@ open class RequestPermissionActivity : AppCompatActivity() {
         StatusBarUtils.translucent(this)
     }
 
+    open fun onRequestingPermission(permissionGroup: PermissionGroup) {}
+
     private fun requestNextPermission() {
         if (mPermissionGroupList.isEmpty()) {
-            onRequestedDangerousPermissions()
+            onRequestResult()
         } else {
             mRequestingPermissionGroup = mPermissionGroupList.removeAt(0)
             mRequestCode++
-            onRequestingPermission(mRequestingPermissionGroup, mRequestCode)
+            onRequestingPermission(mRequestingPermissionGroup)
+            requestDangerousPermissions()
         }
     }
 
-    open fun onRequestingPermission(permissionGroup: PermissionGroup, requestCode: Int) {
-        requestDangerousPermissions(permissionGroup.permissionList, requestCode)
-    }
-
-    /**
-     * 请求权限
-     */
-    open fun requestDangerousPermissions(permissions: List<String>, requestCode: Int) {
-        val hasNotPermissionList: MutableList<String> = mutableListOf()
-
-        if (PermissionUtils.hasPermissions(this, permissions, hasNotPermissionList)) {
-            onRequestResult(permissions, IntArray(permissions.size) {
-                PackageManager.PERMISSION_GRANTED
-            })
-        } else {
-            ActivityCompat.requestPermissions(this, hasNotPermissionList.toTypedArray(), requestCode)
-        }
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        if (requestCode == mRequestCode) {
-            onRequestResult(permissions.toList(), grantResults)
-            return
-        }
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    }
-
-    private fun onRequestResult(permissions: List<String>, intArray: IntArray) {
-        mRequestingPermissionGroup.permissionList?.forEach {
-            val index = permissions.indexOf(it)
-            val granted: Int = if (index != -1) {
-                intArray[index]
-            } else {
-                PackageManager.PERMISSION_GRANTED
-            }
-            mResultPermissionList.add(it)
-            mResultGrantedList.add(granted)
-        }
-        requestNextPermission()
-    }
-
-    open fun onRequestedDangerousPermissions() {
+    open fun onRequestResult() {
         val intent = Intent()
-        intent.putStringArrayListExtra(RESULT_KEY_PERMISSION_LIST, mResultPermissionList)
-        intent.putIntegerArrayListExtra(RESULT_KEY_GRANTED_LIST, mResultGrantedList)
+        PermissionResult.writeIntent(intent, mPermissionResult)
         setResult(RESULT_OK, intent)
         finish()
         overridePendingTransition(0, 0)
     }
 
-    companion object {
-        const val RESULT_KEY_PERMISSION_LIST = "permissionList"
-        const val RESULT_KEY_GRANTED_LIST = "grantedList"
+    /**
+     * 请求权限
+     */
+    private fun requestDangerousPermissions() {
+        val hasNotPermissionList: MutableList<String> = mutableListOf()
+
+        val permissionList = mRequestingPermissionGroup.permissionList
+        permissionList.forEach {
+            if (!PermissionUtils.hasPermission(this, it)) {
+                hasNotPermissionList.add(it)
+            }
+        }
+
+        if (hasNotPermissionList.isEmpty()) {
+            onRequestDangerousPermissionsResult(permissionList, IntArray(permissionList.size) {
+                PackageManager.PERMISSION_GRANTED
+            })
+        } else {
+            ActivityCompat.requestPermissions(this, hasNotPermissionList.toTypedArray(), mRequestCode)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        if (requestCode == mRequestCode) {
+            onRequestDangerousPermissionsResult(permissions.toList(), grantResults)
+            return
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    }
+
+    private fun onRequestDangerousPermissionsResult(permissions: List<String>, intArray: IntArray) {
+        mRequestingPermissionGroup.permissionList.forEach {
+            val index = permissions.indexOf(it)
+            val grantedResult: Int = if (index != -1) {
+                intArray[index]
+            } else {
+                PackageManager.PERMISSION_GRANTED
+            }
+            mPermissionResult.addResult(it, grantedResult)
+        }
+        requestNextPermission()
     }
 }
