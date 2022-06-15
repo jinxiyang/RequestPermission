@@ -8,6 +8,11 @@ import io.github.jinxiyang.requestpermission.PermissionGroup
 import io.github.jinxiyang.requestpermission.GlobalRequestPermissionActivity
 import io.github.jinxiyang.requestpermissiondemo.utils.StatusBarUtils
 
+/**
+ * 统一权限页面：仿UC，页面顶部显示权限提示。
+ *
+ * UC浏览器第一安装时，会有这样的权限申请页，并在页面背景提示相关信息
+ */
 class UCRequestPermissionActivity : GlobalRequestPermissionActivity() {
 
     private lateinit var llContent: LinearLayout
@@ -29,6 +34,7 @@ class UCRequestPermissionActivity : GlobalRequestPermissionActivity() {
     }
 
     override fun onRequestingPermission(permissionGroup: PermissionGroup) {
+        //当申请一组权限时，会回调此方法，可以在页面上显示权限提示信息，比如：为什么要申请此权限等等
         val extra = permissionGroup.extra
         val permissionTitle = extra?.getString(KEY_PERMISSION_TITLE)
         val permissionDesc = extra?.getString(KEY_PERMISSION_DESC)

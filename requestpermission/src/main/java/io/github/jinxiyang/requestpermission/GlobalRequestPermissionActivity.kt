@@ -9,9 +9,10 @@ import io.github.jinxiyang.requestpermission.utils.PermissionUtils
 import io.github.jinxiyang.requestpermission.utils.StatusBarUtils
 
 /**
- * 公用的请求权限中转页面，默认背景透明，看起来不存在一样。
+ * 公用的请求权限中转页面
  *
- * 如果想实现自定义权限中转页面，可以继承此activity
+ * 1、背景透明，该activity在清单文件使用透明主题：@style/RequestTransparentTheme.TransparentTheme
+ * 2、如果想定制中转页面UI，显示一些权限提示，可以继承此activity，示例代码请看app module的UCRequestPermissionActivity
  */
 open class GlobalRequestPermissionActivity : AppCompatActivity() {
 
@@ -41,13 +42,18 @@ open class GlobalRequestPermissionActivity : AppCompatActivity() {
     }
 
     /**
-     * 初始化view，设置setContentView()
+     * 初始化view，可以设置setContentView()
      */
     open fun initView(permissionGroupList: MutableList<PermissionGroup>) {
         //沉浸式状态栏
         StatusBarUtils.translucent(this)
     }
 
+    /**
+     * 申请一组权限时
+     *
+     * 如果有定制中转页面UI，显示一些权限提示，子类可以重写此方法，示例代码请看app module的UCRequestPermissionActivity
+     */
     open fun onRequestingPermission(permissionGroup: PermissionGroup) {}
 
     private fun requestNextPermission() {
@@ -61,6 +67,9 @@ open class GlobalRequestPermissionActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * 权限组都申请过了，调用了此方法，发送数据给原始页面
+     */
     open fun onRequestResult() {
         val intent = Intent()
         PermissionResult.writeIntent(intent, mPermissionResult)

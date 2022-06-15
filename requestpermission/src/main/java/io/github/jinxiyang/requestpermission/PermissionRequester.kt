@@ -9,6 +9,46 @@ import io.github.jinxiyang.requestpermission.activityresultcontracts.OnRequestMu
 import io.github.jinxiyang.requestpermission.activityresultcontracts.OnStartActivityForResultListener
 import io.github.jinxiyang.requestpermission.utils.PermissionUtils
 
+/**
+ * 权限申请者，封装了申请权限流程，链式调用，结果回调，使用起来更优雅。
+ *
+ * 优点：
+ * 1、链式调用，结果回调listener，请求权限和结果回调代码写在一块儿，高内聚。
+ *    不用在activity里处理权限结果回调方法，activity.onRequestPermissionsResult()
+ *
+ * 2、结果回调listener时，activity处于可见状态，即：activity.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+ *    这时如果显示对话框，DialogFragment.show()  没有这个问题了：java.lang.IllegalStateException: Can not perform this action after onSaveInstanceState
+ *
+ * 3、申请权限，系统的新方式是：
+ *      a)、现在onCreate里注册launch
+ *      val contract = ActivityResultContracts.RequestMultiplePermissions()
+ *      val launcher = registerForActivityResult(contract){
+ *          //权限结果回调
+ *      }
+ *
+ *      b)、在需要申请权限的地方：  launcher.launch(permissionArray)
+ *
+ *      这种方式也是代码分开，没有做到高内聚，不能做到链式调用。
+ *
+ *
+ * 如何使用：
+ *    示例一：申请定位权限：
+ *               PermissionRequester(this)
+ *                  .addPermissions(PermissionUtils.LOCATION_PERMISSIONS)
+ *                  .request {
+ *                      Toast.makeText(this@MainActivity, "申请定位权限：${it.granted()}", Toast.LENGTH_SHORT).show()
+ *                  }
+ *
+ *    示例二：使用统一中转页面，来申请权限：
+ *              PermissionRequester(this)
+ *                  .addPermissions(PermissionUtils.LOCATION_PERMISSIONS)
+ *                  .addPermissions(PermissionUtils.CAMERA_PERMISSIONS)
+ *                  .requestGlobal {
+ *                      val location = it.granted(PermissionUtils.LOCATION_PERMISSIONS)
+ *                      val camera = it.granted(PermissionUtils.CAMERA_PERMISSIONS)
+ *                      Toast.makeText(this@MainActivity, "申请定位权限：$location   申请相机权限：$camera", Toast.LENGTH_SHORT).show()
+ *                  }
+ */
 class PermissionRequester(val activity: FragmentActivity) {
 
     private val mPermissionGroupList: ArrayList<PermissionGroup> = ArrayList()
@@ -29,7 +69,7 @@ class PermissionRequester(val activity: FragmentActivity) {
      * 添加需要申请的权限组
      *
      * @param permissionList 一组权限列表，如：存储权限：{@link PermissionUtils.STORAGE_PERMISSIONS}
-     * @param extra 额外数据，可以再统一权限页使用，例如申请权限时页面顶部显示权限说明，示例：UCRequestPermissionActivity
+     * @param extra 额外数据，可以在统一权限页使用，例如申请权限时页面顶部显示权限说明，示例：UCRequestPermissionActivity
      */
     fun addPermissionGroup(permissionList: List<String>, extra: Bundle? = null): PermissionRequester {
         return addPermissionGroup(PermissionGroup(permissionList, extra))
@@ -134,7 +174,7 @@ class PermissionRequester(val activity: FragmentActivity) {
             return
         }
 
-        //无权限时，开启权限统一请求页面
+        //无权限时，开启公用的申请权限页面，申请权限
         val intent = Intent(activity, requestPermissionActivityClass)
         intent.putParcelableArrayListExtra(PARAM_KEY_PERMISSION_GROUP_LIST, mPermissionGroupList)
 

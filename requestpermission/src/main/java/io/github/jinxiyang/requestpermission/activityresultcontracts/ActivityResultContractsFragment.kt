@@ -9,6 +9,11 @@ import androidx.core.app.ActivityOptionsCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.MutableLiveData
 
+/**
+ * 没有UI的fragment，用于发起registerForActivityResult
+ *
+ * 封装了ActivityResultContracts机制，在onCreate预先定义了Launcher，需要使用时，直接launcher.launch()
+ */
 class ActivityResultContractsFragment : Fragment() {
 
     private lateinit var mStartActivityForResultLauncher: ActivityResultLauncher<Intent>
@@ -27,6 +32,9 @@ class ActivityResultContractsFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        //在onCreate预先定义了Launcher，如果不定义，launcher.launch()时会报错：
+        //LifecycleOwner xx is attempting to register while current state is RESUMED. LifecycleOwners must call register before they are STARTED.
+
         val startActivityForResult = StartActivityForResult()
         mStartActivityForResultLauncher = registerForActivityResult(startActivityForResult) {
             mOnStartActivityForResultListener?.onActivityResult(it.resultCode, it.data)

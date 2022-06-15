@@ -6,9 +6,17 @@ import android.os.Parcelable;
 
 import java.util.List;
 
+/**
+ * 权限组
+ *
+ * 如定位权限，有两个：ACCESS_COARSE_LOCATION、ACCESS_FINE_LOCATION
+ */
 public class PermissionGroup implements Parcelable {
 
+    //权限组
     private List<String> permissionList;
+
+    //额外数据，可以在统一权限页使用，例如申请权限时页面顶部显示权限说明，示例：UCRequestPermissionActivity
     private Bundle extra;
 
     public PermissionGroup() {
