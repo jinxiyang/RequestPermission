@@ -9,11 +9,13 @@ import io.github.jinxiyang.requestpermission.GlobalRequestPermissionActivity
 import io.github.jinxiyang.requestpermissiondemo.utils.StatusBarUtils
 
 /**
- * 统一权限页面：仿UC，页面顶部显示权限提示。
+ * 统一权限页面：仿JD，页面顶部显示权限提示，背景透明，配合
  *
- * UC浏览器第一安装时，会有这样的权限申请页，并在页面背景提示相关信息
+ * 京东第一安装，打开首页相机时，会有这样的权限申请页，并在页面背景提示相关信息
+ *
+ * RequestPermissionActivityJD和RequestPermissionActivityUC代码一样，只是布局文件不一样
  */
-class UCRequestPermissionActivity : GlobalRequestPermissionActivity() {
+class RequestPermissionActivityJD : GlobalRequestPermissionActivity() {
 
     private lateinit var llContent: LinearLayout
     private lateinit var clContent: ConstraintLayout
@@ -22,7 +24,7 @@ class UCRequestPermissionActivity : GlobalRequestPermissionActivity() {
 
     override fun initView(permissionGroupList: MutableList<PermissionGroup>) {
         super.initView(permissionGroupList)
-        setContentView(R.layout.activity_uc_request_permission)
+        setContentView(R.layout.activity_request_permission_jd)
         llContent = findViewById(R.id.llContent)
         clContent = findViewById(R.id.clContent)
         tvPermission = findViewById(R.id.tvPermission)

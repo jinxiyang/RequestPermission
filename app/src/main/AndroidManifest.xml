@@ -30,12 +30,18 @@
         </activity>
 
         <activity
-            android:name=".UCRequestPermissionActivity"
+            android:name=".RequestPermissionActivityUC"
             android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.UCPermission"
             />
 
+        <activity
+            android:name=".RequestPermissionActivityJD"
+            android:exported="false"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/RequestTransparentTheme.TransparentTheme"
+            />
 
     </application>
 
